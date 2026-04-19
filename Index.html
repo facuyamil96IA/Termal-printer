@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Express</title>
+    <style>
+        body {
+            background: #121212;
+            color: #e0e0e0;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+        button {
+            background: #00bcd4;
+            border: none;
+            padding: 12px 24px;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        textarea {
+            width: 100%;
+            background: #1e1e1e;
+            color: white;
+            border: 1px solid #333;
+            border-radius: 5px;
+            margin: 10px 0;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Impresora PT-210</h2>
+        <textarea id="textToPrint" rows="4">¡Hola Facundo!&#10;Prueba de impresión&#10;--------------------------------</textarea>
+        <button onclick="connectAndPrint()">Imprimir Ticket</button>
+        <p id="status" style="font-size: 0.8rem; color: #888;"></p>
+    </div>
+
+    <script>
+        // UUIDs estándar para impresoras térmicas chinas (ISSC Protocol)
+        const PRINTER_SERVICE_UUID = "e7810a71-73ae-499d-8c15-faa9aef0c3f2";
+        const PRINTER_CHARACTERISTIC_UUID = "bef8d6c9-9c21-4c9e-b632-bd581100031c";
+
+        async function connectAndPrint() {
+            const status = document.getElementById('status');
+            const text = document.getElementById('textToPrint').value + "\n\n\n"; // Espacio final para corte
+
+            try {
+                status.innerText = "Buscando impresora...";
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'PT-210' }, { namePrefix: 'MTP-2' }],
+                    optionalServices: [PRINTER_SERVICE_UUID]
+                });
+
+                status.innerText = "Conectando...";
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(PRINTER_SERVICE_UUID);
+                const characteristic = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+
+                status.innerText = "Enviando datos...";
+                
+                // Convertir texto a Uint8Array (Codificación simple)
+                const encoder = new TextEncoder();
+                const data = encoder.encode(text);
+
+                // Las impresoras térmicas suelen tener un límite de MTU pequeño, 
+                // enviamos los datos de poco a poco si el texto es largo.
+                await characteristic.writeValue(data);
+
+                status.innerText = "¡Impresión enviada!";
+                await device.gatt.disconnect();
+            } catch (error) {
+                console.error(error);
+                status.innerText = "Error: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
