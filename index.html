@@ -6,14 +6,14 @@
     <title>Para mi Amor - 19/04/26</title>
     <style>
         :root {
-            --primary: #d81b60; /* Un tono rosado más profundo */
+            --primary: #d81b60;
             --bg: #121212;
             --card: #1e1e1e;
         }
         body {
             background-color: var(--bg);
             color: #ffffff;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -25,25 +25,21 @@
             background: var(--card);
             padding: 2.5rem;
             border-radius: 25px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             width: 95%;
             max-width: 420px;
             text-align: center;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        h2 { color: var(--primary); margin-bottom: 1.5rem; font-weight: bold; }
         .preview {
-            background: #fdfdfd;
-            color: #111;
+            background: #fff;
+            color: #000;
             padding: 20px;
             border-radius: 8px;
             font-family: monospace;
             font-size: 14px;
             text-align: left;
             margin-bottom: 25px;
-            line-height: 1.6;
             border-left: 6px solid var(--primary);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
         }
         button {
             background: var(--primary);
@@ -55,11 +51,6 @@
             width: 100%;
             cursor: pointer;
             font-size: 18px;
-            transition: background 0.2s, transform 0.1s;
-        }
-        button:active {
-            background: #b71c1c;
-            transform: scale(0.98);
         }
         #status {
             margin-top: 1.2rem;
@@ -71,16 +62,16 @@
 <body>
 
 <div class="container">
-    <h2>❤️ Mi Nota de Amor</h2>
+    <h2 style="color: var(--primary);">❤️ Nota de Amor</h2>
     <div class="preview">
-        Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 de todos los años que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.
+        Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.
         <br><br>
         Con amor, tu Pepé.
         <br>
-        ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥
+        ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥
     </div>
     
-    <button id="printBtn">IMPRIMIR MI MENSAJE</button>
+    <button id="printBtn">IMPRIMIR TICKET</button>
     <div id="status">Lista para el 19 ❤️</div>
 </div>
 
@@ -90,13 +81,12 @@
 
     const COMMON_SERVICES = [
         "000018f0-0000-1000-8000-00805f9b34fb",
-        "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-        "49535343-fe7d-4ae5-8fa9-9fafd205e455"
+        "e7810a71-73ae-499d-8c15-faa9aef0c3f2"
     ];
 
     printBtn.addEventListener('click', async () => {
         try {
-            status.innerText = "Buscando impresora... (GPS ON)";
+            status.innerText = "Buscando impresora...";
             const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
                 optionalServices: COMMON_SERVICES
@@ -107,51 +97,60 @@
 
             let service;
             for (const uuid of COMMON_SERVICES) {
-                try {
-                    service = await server.getPrimaryService(uuid);
-                    if (service) break;
-                } catch (e) {}
+                try { service = await server.getPrimaryService(uuid); if (service) break; } catch (e) {}
             }
 
             const characteristics = await service.getCharacteristics();
             const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
 
+            // COMANDOS ESC/POS (Bytes directos)
+            const init = [0x1B, 0x40];        // Reset
+            const center = [0x1B, 0x61, 0x01]; // Centrar
+            const left = [0x1B, 0x61, 0x00];   // Izquierda
+            const boldOn = [0x1B, 0x45, 0x01]; // Negrita ON
+            const boldOff = [0x1B, 0x45, 0x00]; // Negrita OFF
+            
+            // Para los corazones usamos el código ASCII 0x03 de la tabla de caracteres
+            const heartIcon = 0x03; 
+            const line = [0x0A, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x0A]; // ----------
+
             const encoder = new TextEncoder();
             
-            // Comandos ESC/POS
-            const init = "\x1B\x40";       // Inicializar
-            const center = "\x1B\x61\x01"; // Centrar
-            const left = "\x1B\x61\x00";   // Izquierda
-            const boldOn = "\x1B\x45\x01"; // Negrita ON
-            const boldOff = "\x1B\x45\x00"; // Negrita OFF
-            const space = "--------------------------------\n"; // 32 chars
-            const heartsLine = boldOn + "❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️\n" + boldOff; // 16 corazones centrados = aprox 32 chars de ancho
-
-            // Preparar el mensaje final
-            const mensaje = 
-                init + center + boldOn + "19 de Abril\n" + boldOff +
-                space +
-                left + "Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 de todos los años que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.\n\n" +
-                center + "Con amor, tu Pepe.\n" +
-                heartsLine + 
-                "\n\n\n\n"; // Espacio para corte
-
-            // Codificar y enviar en chunks de 20 bytes
-            const data = encoder.encode(mensaje);
-            const chunkSize = 20;
-            for (let i = 0; i < data.length; i += chunkSize) {
-                await writeChar.writeValue(data.slice(i, i + chunkSize));
+            // Función para enviar bytes directos
+            async function sendBytes(bytes) {
+                const data = new Uint8Array(bytes);
+                await writeChar.writeValue(data);
             }
 
-            status.innerText = "¡Mensaje enviado con éxito!";
-            setTimeout(() => {
-                device.gatt.disconnect();
-                status.innerText = "Desconectado. ¡Feliz día!";
-            }, 2500);
+            // 1. Inicializar y Título
+            await sendBytes(init);
+            await sendBytes(center);
+            await sendBytes(boldOn);
+            await writeChar.writeValue(encoder.encode("19 de Abril\n"));
+            await sendBytes(boldOff);
+            await writeChar.writeValue(encoder.encode("--------------------------------\n"));
+
+            // 2. Cuerpo del mensaje (Corregido)
+            await sendBytes(left);
+            const msg = "Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.\n\n";
+            await writeChar.writeValue(encoder.encode(msg));
+
+            // 3. Firma y Corazones
+            await sendBytes(center);
+            await writeChar.writeValue(encoder.encode("Con amor, tu Pepe.\n"));
+            
+            // Generar línea de corazones usando el byte 0x03
+            const hearts = [heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x0A];
+            await sendBytes(hearts);
+
+            // 4. Espacio final para corte
+            await writeChar.writeValue(encoder.encode("\n\n\n\n"));
+
+            status.innerText = "¡Enviado!";
+            setTimeout(() => device.gatt.disconnect(), 2000);
 
         } catch (error) {
             status.innerText = "Error: " + error.message;
-            console.error(error);
         }
     });
 </script>
