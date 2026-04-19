@@ -3,150 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Para mi Amor - 19/04/26</title>
+    <title>Para mi Amor</title>
     <style>
-        :root {
-            --primary: #d81b60;
-            --bg: #121212;
-            --card: #1e1e1e;
-        }
-        body {
-            background-color: var(--bg);
-            color: #ffffff;
-            font-family: sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            background: var(--card);
-            padding: 2.5rem;
-            border-radius: 25px;
-            width: 95%;
-            max-width: 420px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .preview {
-            background: #fff;
-            color: #000;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 14px;
-            text-align: left;
-            margin-bottom: 25px;
-            border-left: 6px solid var(--primary);
-        }
-        button {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 18px;
-            border-radius: 15px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            font-size: 18px;
-        }
-        #status {
-            margin-top: 1.2rem;
-            font-size: 0.9rem;
-            color: #aaa;
-        }
+        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; border: 1px solid #d81b60; }
+        button { background: #d81b60; color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 20px; }
+        #status { color: #888; margin-top: 10px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 style="color: var(--primary);">❤️ Nota de Amor</h2>
-    <div class="preview">
-        Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.
-        <br><br>
-        Con amor, tu Pepé.
-        <br>
-        ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥
-    </div>
-    
-    <button id="printBtn">IMPRIMIR TICKET</button>
-    <div id="status">Lista para el 19 ❤️</div>
+<div class="card">
+    <h2 style="color: #d81b60;">Nota para el 19</h2>
+    <p>Este codigo elimina acentos para evitar errores de impresion.</p>
+    <button id="printBtn">IMPRIMIR AHORA</button>
+    <div id="status">Lista</div>
 </div>
 
 <script>
     const printBtn = document.getElementById('printBtn');
     const status = document.getElementById('status');
 
-    const COMMON_SERVICES = [
-        "000018f0-0000-1000-8000-00805f9b34fb",
-        "e7810a71-73ae-499d-8c15-faa9aef0c3f2"
-    ];
-
     printBtn.addEventListener('click', async () => {
         try {
-            status.innerText = "Buscando impresora...";
+            status.innerText = "Buscando...";
             const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
-                optionalServices: COMMON_SERVICES
+                optionalServices: ["e7810a71-73ae-499d-8c15-faa9aef0c3f2", "000018f0-0000-1000-8000-00805f9b34fb"]
             });
 
             const server = await device.gatt.connect();
-            status.innerText = "Conectado. Imprimiendo...";
-
-            let service;
-            for (const uuid of COMMON_SERVICES) {
-                try { service = await server.getPrimaryService(uuid); if (service) break; } catch (e) {}
-            }
-
+            const services = await server.getPrimaryServices();
+            const service = services[0];
             const characteristics = await service.getCharacteristics();
             const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
 
-            // COMANDOS ESC/POS (Bytes directos)
-            const init = [0x1B, 0x40];        // Reset
-            const center = [0x1B, 0x61, 0x01]; // Centrar
-            const left = [0x1B, 0x61, 0x00];   // Izquierda
-            const boldOn = [0x1B, 0x45, 0x01]; // Negrita ON
-            const boldOff = [0x1B, 0x45, 0x00]; // Negrita OFF
-            
-            // Para los corazones usamos el código ASCII 0x03 de la tabla de caracteres
-            const heartIcon = 0x03; 
-            const line = [0x0A, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x0A]; // ----------
-
             const encoder = new TextEncoder();
             
-            // Función para enviar bytes directos
-            async function sendBytes(bytes) {
-                const data = new Uint8Array(bytes);
-                await writeChar.writeValue(data);
+            // COMANDOS BASICOS
+            const init = new Uint8Array([0x1B, 0x40]);
+            const center = new Uint8Array([0x1B, 0x61, 0x01]);
+            const left = new Uint8Array([0x1B, 0x61, 0x00]);
+
+            // Texto sin acentos para evitar simbolos raros y con saltos manuales (\n)
+            const lineas = [
+                "      19 de Abril de 2026\n",
+                "--------------------------------\n",
+                "Hoy, 19/04/2026, quiero\n",
+                "recordarte que Te amo con toda\n",
+                "mi alma, y que estoy\n",
+                "profundamente enamorado de la\n",
+                "mujer que sos.\n\n",
+                "Quiero que estemos juntos cada\n",
+                "19 que me restan.\n\n",
+                "Gracias por cada detalle, mimo\n",
+                "y todo lo que viene de vos. No\n",
+                "puedo estar mas feliz de tu\n",
+                "presencia en mi vida.\n\n",
+                "      Con amor, tu Pepe.\n\n",
+                "<3 <3 <3 <3 <3 <3 <3 <3 <3 <3\n",
+                "<3 <3 <3 <3 <3 <3 <3 <3 <3 <3\n",
+                "\n\n\n\n"
+            ];
+
+            await writeChar.writeValue(init);
+            await writeChar.writeValue(center);
+
+            for (const linea of lineas) {
+                // Enviamos linea por linea con un mini retraso para no saturar el Bluetooth
+                await writeChar.writeValue(encoder.encode(linea));
+                await new Promise(r => setTimeout(r, 50)); 
             }
 
-            // 1. Inicializar y Título
-            await sendBytes(init);
-            await sendBytes(center);
-            await sendBytes(boldOn);
-            await writeChar.writeValue(encoder.encode("19 de Abril\n"));
-            await sendBytes(boldOff);
-            await writeChar.writeValue(encoder.encode("--------------------------------\n"));
-
-            // 2. Cuerpo del mensaje (Corregido)
-            await sendBytes(left);
-            const msg = "Hoy, 19/04/2026, quiero recordarte que Te amo con toda mi alma, y que estoy profundamente enamorado de la mujer que sos. Quiero que estemos juntos cada 19 que me restan. Gracias por cada detalle, mimo y todo lo que viene de vos. No puedo estar mas feliz de tu presencia en mi vida.\n\n";
-            await writeChar.writeValue(encoder.encode(msg));
-
-            // 3. Firma y Corazones
-            await sendBytes(center);
-            await writeChar.writeValue(encoder.encode("Con amor, tu Pepe.\n"));
-            
-            // Generar línea de corazones usando el byte 0x03
-            const hearts = [heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x20, heartIcon, 0x0A];
-            await sendBytes(hearts);
-
-            // 4. Espacio final para corte
-            await writeChar.writeValue(encoder.encode("\n\n\n\n"));
-
-            status.innerText = "¡Enviado!";
+            status.innerText = "Impreso!";
             setTimeout(() => device.gatt.disconnect(), 2000);
 
         } catch (error) {
@@ -154,6 +83,5 @@
         }
     });
 </script>
-
 </body>
 </html>
