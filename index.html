@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Para mi Amor</title>
+    <title>Recibo Oficial 23093108</title>
     <style>
         body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; border: 1px solid #d81b60; }
-        button { background: #d81b60; color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 20px; }
-        #status { color: #888; margin-top: 10px; font-size: 0.8rem; }
+        .card { background: #1e1e1e; padding: 25px; border-radius: 20px; border: 2px solid #00e5ff; }
+        h2 { color: #00e5ff; margin-bottom: 5px; }
+        .num { font-family: monospace; color: #888; margin-bottom: 20px; }
+        button { background: #00e5ff; color: #000; border: none; padding: 18px; border-radius: 12px; width: 100%; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        #status { margin-top: 15px; color: #666; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="color: #d81b60;">Nota para el 19</h2>
-    <p>Este codigo elimina acentos para evitar errores de impresion.</p>
-    <button id="printBtn">IMPRIMIR AHORA</button>
-    <div id="status">Lista</div>
+    <h2>COMPROBANTE DE VENTA</h2>
+    <div class="num">Nro: 23093108</div>
+    
+    <div style="text-align: left; background: #fff; color: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; margin-bottom: 20px; line-height: 1.4;">
+        RECIBE: Selene Alfonzo<br>
+        ENTREGA: Facundo Adan<br>
+        ------------------------<br>
+        PRODUCTO: Corazon Puro<br>
+        PRECIO: Vida Juntos<br>
+        FECHA: 19/11/2025
+    </div>
+
+    <button id="printBtn">IMPRIMIR FACTURA</button>
+    <div id="status">Lista para emitir ticket</div>
 </div>
 
 <script>
@@ -33,49 +45,43 @@
             });
 
             const server = await device.gatt.connect();
-            const services = await server.getPrimaryServices();
-            const service = services[0];
+            const service = (await server.getPrimaryServices())[0];
             const characteristics = await service.getCharacteristics();
             const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
 
             const encoder = new TextEncoder();
-            
-            // COMANDOS BASICOS
             const init = new Uint8Array([0x1B, 0x40]);
             const center = new Uint8Array([0x1B, 0x61, 0x01]);
             const left = new Uint8Array([0x1B, 0x61, 0x00]);
+            const boldOn = new Uint8Array([0x1B, 0x45, 0x01]);
+            const boldOff = new Uint8Array([0x1B, 0x45, 0x00]);
 
-            // Texto sin acentos para evitar simbolos raros y con saltos manuales (\n)
-            const lineas = [
-                "      19 de Abril de 2026\n",
+            const ticket = [
+                init, center, boldOn, "RECIBO DE PROPIEDAD\n", boldOff,
+                "No. 23093108\n",
                 "--------------------------------\n",
-                "Hoy, 19/04/2026, quiero\n",
-                "recordarte que Te amo con toda\n",
-                "mi alma, y que estoy\n",
-                "profundamente enamorado de la\n",
-                "mujer que sos.\n\n",
-                "Quiero que estemos juntos cada\n",
-                "19 que me restan.\n\n",
-                "Gracias por cada detalle, mimo\n",
-                "y todo lo que viene de vos. No\n",
-                "puedo estar mas feliz de tu\n",
-                "presencia en mi vida.\n\n",
-                "      Con amor, tu Pepe.\n\n",
-                "<3 <3 <3 <3 <3 <3 <3 <3 <3 <3\n",
+                left, boldOn, "COMPRADORA:\n", boldOff, "Selene Alfonzo\n\n",
+                boldOn, "PRODUCTO ADQUIRIDO:\n", boldOff, "El corazon de\nFacundo Adan\n\n",
+                boldOn, "VALOR PAGADO:\n", boldOff, "Toda una vida juntos\n\n",
+                "--------------------------------\n",
+                boldOn, "FECHA:     ", boldOff, "19/11/2025\n",
+                boldOn, "VALIDEZ:   ", boldOff, "Eterna\n",
+                boldOn, "ESTADO:    ", boldOff, "Entregado con amor\n",
+                "--------------------------------\n",
+                center, "\nGracias por elegirme.\n",
                 "<3 <3 <3 <3 <3 <3 <3 <3 <3 <3\n",
                 "\n\n\n\n"
             ];
 
-            await writeChar.writeValue(init);
-            await writeChar.writeValue(center);
+            status.innerText = "Emitiendo...";
 
-            for (const linea of lineas) {
-                // Enviamos linea por linea con un mini retraso para no saturar el Bluetooth
-                await writeChar.writeValue(encoder.encode(linea));
-                await new Promise(r => setTimeout(r, 50)); 
+            for (const item of ticket) {
+                const data = (typeof item === 'string') ? encoder.encode(item) : item;
+                await writeChar.writeValue(data);
+                await new Promise(r => setTimeout(r, 60)); 
             }
 
-            status.innerText = "Impreso!";
+            status.innerText = "¡Ticket emitido!";
             setTimeout(() => device.gatt.disconnect(), 2000);
 
         } catch (error) {
